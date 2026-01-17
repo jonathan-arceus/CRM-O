@@ -1,0 +1,6 @@
+[dotenv@17.2.3] injecting env (4) from .env -- tip: ≡ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+--- RPC Debugger ---
+URL: http://localhost:54321
+Error querying pg_proc: Could not find the table 'public.pg_proc' in the schema cache
+Attempting schema reload...
+Schema reload attempt (via random RPC) error: OK

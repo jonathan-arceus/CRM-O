@@ -1,0 +1,323 @@
+version: '3.8'
+
+services:
+  # -------------------------
+  # YOUR CRM APPLICATION
+  # -------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # These will point to the LOCAL Supabase instance within the Docker network
+        # or the public IP of the Droplet if accessed from outside.
+        # For the browser to access it, it MUST be the Public IP or Domain of your Droplet.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL} 
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+    container_name: crm_app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - kong
+
+  # -------------------------
+  # SUPABASE SERVICES
+  # -------------------------
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio:20250113-ceedf74
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - require("http").get("http://localhost:3000/api/profile", (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
+      LOGFLARE_URL: http://analytics:4000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "3000:3000"
+
+  kong:
+    container_name: supabase-kong
+    image: kong:2.8.1
+    restart: unless-stopped
+    entrypoint: bash -c "eval 'echo \"$$(cat /templates/kong.yml.template)\"' > /var/lib/kong/kong.yml && /docker-entrypoint.sh kong docker-start"
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      # Initialization
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+    volumes:
+      # We need to provide this file!
+      - ./supabase/volumes/api/kong.yml.template:/templates/kong.yml.template:ro
+
+  auth:
+    container_name: supabase-auth
+    image: supabase/gotrue:v2.158.1
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://localhost:9999/health
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${SUPABASE_PUBLIC_URL}
+
+      # DATABASE CONFIG
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+
+      # SITE CONFIG
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP}
+
+      # JWT CONFIG
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+
+      # EMAIL CONFIG
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_SMTP_MAX_FREQUENCY: 1s
+      GOTRUE_MAILER_URLPATHS_ION_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+
+      # PHONE CONFIG
+      GOTRUE_SMS_EKS: ${SMS_EKS}
+      GOTRUE_SMS_GKS: ${SMS_GKS}
+      GOTRUE_SMS_PROVIDER: ${SMS_PROVIDER}
+
+  rest:
+    container_name: supabase-rest
+    image: postgrest/postgrest:v12.2.0
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://localhost:3000/live
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUC_VARS: "true"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXP}
+
+  realtime:
+    container_name: supabase-realtime
+    image: supabase/realtime:v2.30.23
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          printf "GET /health HTTP/1.1\n\n" > /dev/tcp/127.0.0.1/4000
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      FLY_ALLOC_ID: fly_alloc_id
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      ENABLE_ROLES: "true"
+    command: >
+      sh -c "/app/bin/migrate && /app/bin/server"
+
+  storage:
+    container_name: supabase-storage
+    image: supabase/storage-api:v1.11.13
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://localhost:5000/status
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      # REGION: stub
+      GLOBAL_S3_BUCKET: stub
+    volumes:
+      - ./supabase/volumes/storage:/var/lib/storage
+
+  imgproxy:
+    container_name: supabase-imgproxy
+    image: darthsim/imgproxy:v3.26.0
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - imgproxy
+        - health
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    environment:
+      IMGPROXY_BIND: :5001
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+      IMGPROXY_MAX_ANIMATION_FRAMES: 100
+      IMGPROXY_MAX_DOWNLOAD_BUFFER_SIZE: 100mb
+    volumes:
+      - ./supabase/volumes/storage:/var/lib/storage
+
+  meta:
+    container_name: supabase-meta
+    image: supabase/postgres-meta:v0.84.2
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - npm
+        - run
+        - health:check
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+  db:
+    container_name: supabase-db
+    image: supabase/postgres:15.6.1.139
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - -U
+        - postgres
+        - -h
+        - localhost
+      timeout: 5s
+      interval: 5s
+      retries: 10
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      # - -c
+      # - log_min_messages=fatal # Reduces log noise
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: ${JWT_EXP}
+    volumes:
+      - ./supabase/volumes/db/data:/var/lib/postgresql/data
+      - ./supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ./supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      # You can mount your migrations here to auto-apply them!
+      # - ./supabase/migrations:/docker-entrypoint-initdb.d/migrations:Z
+
+# Volumes for persistence
+volumes:
+  db-data:

@@ -1,0 +1,137 @@
+
+-- Enable pgcrypto for password hashing
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Function to create a user as an admin
+-- Using TEXT for all inputs to avoid UUID mapping issues with PostgREST
+CREATE OR REPLACE FUNCTION public.admin_create_user(
+  _email TEXT,
+  _password TEXT,
+  _full_name TEXT,
+  _role_name TEXT,
+  _organization_id TEXT,
+  _group_id TEXT DEFAULT NULL
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+  new_user_id UUID;
+  target_role_id UUID;
+  target_org_id UUID;
+  target_group_id UUID;
+BEGIN
+  -- 1. Check if the caller is a super admin
+  IF NOT public.is_super_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Only super admins can create users';
+  END IF;
+
+  -- Cast IDs
+  target_org_id := _organization_id::UUID;
+  IF _group_id IS NOT NULL AND _group_id <> '' THEN
+    target_group_id := _group_id::UUID;
+  END IF;
+
+  -- 2. Find the role ID
+  SELECT id INTO target_role_id 
+  FROM public.dynamic_roles 
+  WHERE name = _role_name 
+  AND (organization_id = target_org_id OR organization_id IS NULL)
+  LIMIT 1;
+
+  IF target_role_id IS NULL THEN
+    RAISE EXCEPTION 'Role % not found', _role_name;
+  END IF;
+
+  -- 3. Create the user in auth.users
+  INSERT INTO auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token,
+    email_change,
+    email_change_token_new,
+    recovery_token
+  )
+  VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    _email,
+    crypt(_password, gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    jsonb_build_object('full_name', _full_name),
+    now(),
+    now(),
+    '',
+    '',
+    '',
+    ''
+  )
+  RETURNING id INTO new_user_id;
+
+  -- 4. Sync with profile
+  INSERT INTO public.profiles (id, email, full_name, organization_id, group_id)
+  VALUES (new_user_id, _email, _full_name, target_org_id, target_group_id)
+  ON CONFLICT (id) DO UPDATE 
+  SET full_name = _full_name,
+      organization_id = target_org_id,
+      group_id = target_group_id;
+
+  -- 5. Assign role
+  INSERT INTO public.user_dynamic_roles (user_id, organization_id, role_id)
+  VALUES (new_user_id, target_org_id, target_role_id)
+  ON CONFLICT (user_id, organization_id) DO UPDATE 
+  SET role_id = target_role_id;
+
+  RETURN new_user_id;
+END;
+$$;
+
+-- Function to delete a user as an admin
+CREATE OR REPLACE FUNCTION public.admin_delete_user(
+  _user_id UUID
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+  -- 1. Check if the caller is a super admin
+  IF NOT public.is_super_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Only super admins can delete users';
+  END IF;
+
+  -- 2. Prevent self-deletion
+  IF _user_id = auth.uid() THEN
+    RAISE EXCEPTION 'You cannot delete your own account';
+  END IF;
+
+  -- 3. Delete from public tables
+  DELETE FROM public.user_dynamic_roles WHERE user_id = _user_id;
+  DELETE FROM public.profiles WHERE id = _user_id;
+
+  -- 4. Delete from auth.users
+  DELETE FROM auth.users WHERE id = _user_id;
+END;
+$$;
+
+-- Explicitly grant permissions to ensure RPC is accessible
+GRANT EXECUTE ON FUNCTION public.admin_create_user TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_delete_user TO authenticated, service_role;
+
+-- Force schema reload for PostgREST
+NOTIFY pgrst, 'reload schema';

@@ -1,0 +1,3 @@
+--- Super Admin Role Check ---
+User: admin@example.com, Roles: [ 'super_admin' ]
+User: jonathan@email.com, Roles: [ 'agent' ]
