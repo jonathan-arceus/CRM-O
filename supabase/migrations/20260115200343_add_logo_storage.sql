@@ -1,0 +1,29 @@
+
+-- Create a storage bucket for logos
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('logos', 'logos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Policies for the logos bucket
+-- 1. Allow public to view logos
+CREATE POLICY "Public Access" ON storage.objects
+  FOR SELECT USING (bucket_id = 'logos');
+
+-- 2. Allow authenticated users (Super Admins) to upload/update logos
+CREATE POLICY "Admin Upload" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'logos' AND 
+    public.is_super_admin(auth.uid())
+  );
+
+CREATE POLICY "Admin Update" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'logos' AND 
+    public.is_super_admin(auth.uid())
+  );
+
+CREATE POLICY "Admin Delete" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'logos' AND 
+    public.is_super_admin(auth.uid())
+  );

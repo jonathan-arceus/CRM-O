@@ -1,0 +1,63 @@
+_format_version: "2.1"
+
+services:
+  - name: "realtime"
+    url: http://realtime:4000
+    routes:
+      - name: "realtime"
+        paths:
+          - /realtime/v1
+        strip_path: false
+
+  - name: "storage"
+    url: http://storage:5000
+    routes:
+      - name: "list_buckets"
+        paths:
+          - /storage/v1
+        methods:
+          - GET
+          - POST
+        strip_path: false
+      - name: "storage_other"
+        paths:
+          - /storage/v1/bucket
+          - /storage/v1/object
+          - /storage/v1/render
+        strip_path: false
+
+  - name: "auth"
+    url: http://auth:9999
+    routes:
+      - name: "auth"
+        paths:
+          - /auth/v1
+        strip_path: false
+
+  - name: "rest"
+    url: http://rest:3000
+    routes:
+      - name: "rest"
+        paths:
+          - /rest/v1
+        strip_path: false
+      - name: "graphql"
+        paths:
+          - /graphql/v1
+        strip_path: false
+
+  - name: "meta"
+    url: http://meta:8080
+    routes:
+      - name: "meta"
+        paths:
+          - /pg
+        strip_path: false
+
+consumers:
+  - username: anon
+    keyauth_credentials:
+      - key: ${SUPABASE_ANON_KEY}
+  - username: service_role
+    keyauth_credentials:
+      - key: ${SUPABASE_SERVICE_KEY}

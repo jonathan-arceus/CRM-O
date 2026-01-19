@@ -1,0 +1,271 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* CRM Professional Color System */
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Deep Indigo Primary */
+    --primary: 234 89% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 234 89% 54%;
+
+    --radius: 0.625rem;
+
+    /* CRM Status Colors */
+    --status-new: 210 100% 50%;
+    --status-contacted: 262 83% 58%;
+    --status-followup: 38 92% 50%;
+    --status-converted: 142 71% 45%;
+    --status-lost: 0 84% 60%;
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 234 89% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 18%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 47% 18%;
+    --sidebar-ring: 234 89% 64%;
+    --sidebar-muted: 220 9% 46%;
+
+    /* Chart Colors */
+    --chart-1: 234 89% 54%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 0 84% 60%;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -2px hsl(222 47% 11% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1), 0 4px 6px -4px hsl(222 47% 11% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(222 47% 11% / 0.1), 0 8px 10px -6px hsl(222 47% 11% / 0.1);
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 220 14% 96%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 220 14% 96%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 220 14% 96%;
+
+    --primary: 234 89% 64%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 47% 15%;
+    --secondary-foreground: 220 14% 96%;
+
+    --muted: 222 47% 15%;
+    --muted-foreground: 220 9% 60%;
+
+    --accent: 222 47% 15%;
+    --accent-foreground: 220 14% 96%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 47% 18%;
+    --input: 222 47% 18%;
+    --ring: 234 89% 64%;
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 234 89% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 47% 12%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 47% 15%;
+    --sidebar-ring: 234 89% 64%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Status Badge Variants */
+  .status-new {
+    @apply bg-[hsl(var(--status-new)/0.1)] text-[hsl(var(--status-new))] border-[hsl(var(--status-new)/0.3)];
+  }
+  
+  .status-contacted {
+    @apply bg-[hsl(var(--status-contacted)/0.1)] text-[hsl(var(--status-contacted))] border-[hsl(var(--status-contacted)/0.3)];
+  }
+  
+  .status-followup {
+    @apply bg-[hsl(var(--status-followup)/0.1)] text-[hsl(var(--status-followup))] border-[hsl(var(--status-followup)/0.3)];
+  }
+  
+  .status-converted {
+    @apply bg-[hsl(var(--status-converted)/0.1)] text-[hsl(var(--status-converted))] border-[hsl(var(--status-converted)/0.3)];
+  }
+  
+  .status-lost {
+    @apply bg-[hsl(var(--status-lost)/0.1)] text-[hsl(var(--status-lost))] border-[hsl(var(--status-lost)/0.3)];
+  }
+
+  /* CRM Card Styles */
+  .crm-card {
+    @apply bg-card rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  .crm-card-header {
+    @apply px-6 py-4 border-b border-border;
+  }
+
+  .crm-card-body {
+    @apply p-6;
+  }
+
+  /* Metric Card */
+  .metric-card {
+    @apply crm-card p-6 flex flex-col gap-2;
+  }
+
+  .metric-value {
+    @apply text-3xl font-bold text-foreground tracking-tight;
+  }
+
+  .metric-label {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+
+  .metric-trend-up {
+    @apply text-[hsl(var(--status-converted))] text-sm font-medium;
+  }
+
+  .metric-trend-down {
+    @apply text-[hsl(var(--status-lost))] text-sm font-medium;
+  }
+
+  /* Kanban Board */
+  .kanban-column {
+    @apply bg-muted/50 rounded-lg p-4 min-w-[300px] max-w-[300px];
+  }
+
+  .kanban-card {
+    @apply bg-card rounded-lg border border-border p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer;
+  }
+
+  /* Table Enhancements */
+  .crm-table {
+    @apply w-full;
+  }
+
+  .crm-table thead tr {
+    @apply bg-muted/50;
+  }
+
+  .crm-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider;
+  }
+
+  .crm-table td {
+    @apply px-4 py-4 text-sm;
+  }
+
+  .crm-table tbody tr {
+    @apply border-b border-border hover:bg-muted/30 transition-colors;
+  }
+
+  /* Activity Timeline */
+  .timeline-item {
+    @apply relative pl-8 pb-6 border-l-2 border-border last:border-l-transparent last:pb-0;
+  }
+
+  .timeline-dot {
+    @apply absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-primary border-4 border-background;
+  }
+
+  .timeline-content {
+    @apply bg-muted/30 rounded-lg p-4;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}

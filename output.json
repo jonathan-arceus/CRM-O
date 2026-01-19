@@ -1,0 +1,35 @@
+--- Database Dump ---
+Profiles: [
+  {
+    id: '9e54ad6f-f966-4a61-be29-9e8a3ece7a11',
+    full_name: 'Super Admin',
+    email: 'admin@example.com',
+    organization_id: null
+  },
+  {
+    id: 'ff042658-31b0-4af7-b7f5-d7a4e30dfc43',
+    full_name: 'jonathan',
+    email: 'jonathan@email.com',
+    organization_id: '00000000-0000-0000-0000-000000000001'
+  }
+]
+Organizations: [
+  {
+    id: '00000000-0000-0000-0000-000000000001',
+    name: 'Default Organization'
+  }
+]
+Settings: [
+  {
+    id: '56e45e15-4660-4381-82b4-270a69802c55',
+    organization_id: '00000000-0000-0000-0000-000000000001',
+    theme_mode: 'dark',
+    primary_color: '#009e84',
+    secondary_color: '#32bd00',
+    button_style: 'square',
+    layout_preference: 'default',
+    crm_name: 'Owl',
+    created_at: '2026-01-13T13:50:00.460928+00:00',
+    updated_at: '2026-01-16T04:54:35.224914+00:00'
+  }
+]
