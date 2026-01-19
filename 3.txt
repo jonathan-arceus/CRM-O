@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
@@ -295,4 +296,303 @@ CREATE TABLE public.user_roles (
   role USER-DEFINED NOT NULL DEFAULT 'agent'::app_role,
   CONSTRAINT user_roles_pkey PRIMARY KEY (id),
   CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+=======
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.activities (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lead_id uuid,
+  user_id uuid,
+  action text NOT NULL,
+  details jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT activities_pkey PRIMARY KEY (id),
+  CONSTRAINT activities_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES public.leads(id),
+  CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT activities_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.audit_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  action text NOT NULL,
+  entity_type text NOT NULL,
+  entity_id uuid,
+  old_values jsonb,
+  new_values jsonb,
+  ip_address text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.call_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  lead_id uuid,
+  contact_id uuid,
+  phone_number text NOT NULL,
+  call_status text NOT NULL DEFAULT 'initiated'::text,
+  duration_seconds integer,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT call_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT call_logs_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT call_logs_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES public.leads(id),
+  CONSTRAINT call_logs_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES public.contacts(id)
+);
+CREATE TABLE public.comments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  content text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT comments_pkey PRIMARY KEY (id),
+  CONSTRAINT comments_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES public.leads(id),
+  CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT comments_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.contacts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lead_id uuid,
+  full_name text NOT NULL,
+  email text,
+  phone text,
+  company text,
+  source text NOT NULL DEFAULT 'other'::text,
+  value numeric,
+  converted_at timestamp with time zone NOT NULL DEFAULT now(),
+  converted_to_company text,
+  assigned_user_id uuid,
+  group_id uuid,
+  notes text,
+  custom_fields jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT contacts_pkey PRIMARY KEY (id),
+  CONSTRAINT contacts_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES public.leads(id),
+  CONSTRAINT contacts_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT contacts_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.custom_field_definitions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  field_name text NOT NULL UNIQUE,
+  field_label text NOT NULL,
+  field_type text NOT NULL CHECK (field_type = ANY (ARRAY['text'::text, 'number'::text, 'date'::text, 'dropdown'::text, 'textarea'::text])),
+  dropdown_options jsonb DEFAULT '[]'::jsonb,
+  is_required boolean NOT NULL DEFAULT false,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT custom_field_definitions_pkey PRIMARY KEY (id),
+  CONSTRAINT custom_field_definitions_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.dynamic_roles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid,
+  name text NOT NULL,
+  display_name text NOT NULL,
+  description text,
+  is_system_role boolean NOT NULL DEFAULT false,
+  is_org_admin boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT dynamic_roles_pkey PRIMARY KEY (id),
+  CONSTRAINT dynamic_roles_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.groups (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT groups_pkey PRIMARY KEY (id),
+  CONSTRAINT groups_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.lead_sources (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  label text NOT NULL,
+  color text NOT NULL DEFAULT '#6b7280'::text,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_default boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT lead_sources_pkey PRIMARY KEY (id),
+  CONSTRAINT lead_sources_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.lead_statuses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  label text NOT NULL,
+  color text NOT NULL DEFAULT '#6b7280'::text,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_default boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT lead_statuses_pkey PRIMARY KEY (id),
+  CONSTRAINT lead_statuses_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.leads (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  full_name text NOT NULL,
+  email text,
+  phone text,
+  company text,
+  source USER-DEFINED NOT NULL DEFAULT 'other'::lead_source,
+  status USER-DEFINED NOT NULL DEFAULT 'new'::lead_status,
+  value numeric,
+  assigned_user_id uuid,
+  group_id uuid,
+  notes text,
+  custom_fields jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT leads_pkey PRIMARY KEY (id),
+  CONSTRAINT leads_assigned_user_id_fkey FOREIGN KEY (assigned_user_id) REFERENCES auth.users(id),
+  CONSTRAINT leads_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT leads_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT leads_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.organization_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL UNIQUE,
+  theme_mode text NOT NULL DEFAULT 'light'::text CHECK (theme_mode = ANY (ARRAY['light'::text, 'dark'::text, 'custom'::text])),
+  primary_color text NOT NULL DEFAULT '#8B5CF6'::text,
+  secondary_color text NOT NULL DEFAULT '#6366F1'::text,
+  button_style text NOT NULL DEFAULT 'rounded'::text CHECK (button_style = ANY (ARRAY['rounded'::text, 'square'::text, 'pill'::text])),
+  layout_preference text NOT NULL DEFAULT 'default'::text,
+  crm_name text NOT NULL DEFAULT 'CRM System'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT organization_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_settings_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.organizations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  logo_url text,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT organizations_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.page_visibility (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  role_id uuid NOT NULL,
+  page_path text NOT NULL,
+  is_visible boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT page_visibility_pkey PRIMARY KEY (id),
+  CONSTRAINT page_visibility_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT page_visibility_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.dynamic_roles(id)
+);
+CREATE TABLE public.permissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  display_name text NOT NULL,
+  category text NOT NULL,
+  description text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT permissions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.phone_visibility_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL,
+  role_id uuid NOT NULL,
+  visibility_mode text NOT NULL DEFAULT 'masked'::text CHECK (visibility_mode = ANY (ARRAY['full'::text, 'masked'::text, 'hidden'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT phone_visibility_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT phone_visibility_settings_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  email text NOT NULL,
+  full_name text,
+  avatar_url text,
+  group_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
+  CONSTRAINT profiles_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT profiles_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.reminders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  reminder_type text NOT NULL DEFAULT 'follow_up'::text,
+  reminder_date timestamp with time zone NOT NULL,
+  notes text,
+  is_completed boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  organization_id uuid,
+  CONSTRAINT reminders_pkey PRIMARY KEY (id),
+  CONSTRAINT reminders_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES public.leads(id),
+  CONSTRAINT reminders_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.role_permissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  role_id uuid NOT NULL,
+  permission_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT role_permissions_pkey PRIMARY KEY (id),
+  CONSTRAINT role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.dynamic_roles(id),
+  CONSTRAINT role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.permissions(id)
+);
+CREATE TABLE public.system_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  setting_key text NOT NULL UNIQUE,
+  setting_value jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT system_settings_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.telephony_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_id uuid NOT NULL UNIQUE,
+  is_enabled boolean NOT NULL DEFAULT false,
+  provider text CHECK (provider = ANY (ARRAY['twilio'::text, 'vonage'::text, 'sip'::text, 'tel'::text])),
+  api_sid text,
+  api_token text,
+  api_endpoint text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT telephony_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT telephony_settings_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.user_dynamic_roles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  organization_id uuid NOT NULL,
+  role_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_dynamic_roles_pkey PRIMARY KEY (id),
+  CONSTRAINT user_dynamic_roles_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id),
+  CONSTRAINT user_dynamic_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.dynamic_roles(id)
+);
+CREATE TABLE public.user_roles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  role USER-DEFINED NOT NULL DEFAULT 'agent'::app_role,
+  CONSTRAINT user_roles_pkey PRIMARY KEY (id),
+  CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+>>>>>>> a429b972435d22227dbc2bcbd5e076c8cd0980bd
 );

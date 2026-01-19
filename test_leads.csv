@@ -1,4 +1,11 @@
+<<<<<<< HEAD
 full_name,email,phone,company,status,source
 John Doe,john.doe@test.com,+1234567890,Test Company,new,website
 Jane Smith,jane.smith@test.com,+0987654321,Another Corp,new,referral
 Bob Johnson,bob@example.com,+1122334455,Bob's Business,new,social_media
+=======
+full_name,email,phone,company,status,source
+John Doe,john.doe@test.com,+1234567890,Test Company,new,website
+Jane Smith,jane.smith@test.com,+0987654321,Another Corp,new,referral
+Bob Johnson,bob@example.com,+1122334455,Bob's Business,new,social_media
+>>>>>>> a429b972435d22227dbc2bcbd5e076c8cd0980bd
