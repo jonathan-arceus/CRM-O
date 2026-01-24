@@ -195,6 +195,7 @@ services:
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       ERL_AFLAGS: -proto_dist inet_tcp
       ENABLE_ROLES: "true"
+      RLIMIT_NOFILE: "10000"
     command: >
       sh -c "/app/bin/migrate && /app/bin/server"
 
