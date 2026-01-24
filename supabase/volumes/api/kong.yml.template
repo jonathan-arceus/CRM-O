@@ -58,9 +58,9 @@ plugins:
   - name: cors
     config:
       origins:
-        - "http://159.65.137.58"
-        - "http://localhost:3000"
-        - "http://localhost:8000"
+        - 'http://159.65.137.58'
+        - 'http://localhost:3000'
+        - 'http://localhost:8000'
       methods:
         - GET
         - POST
