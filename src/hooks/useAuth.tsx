@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         // Defer fetching profile data
         if (session?.user) {
           setTimeout(() => {
@@ -74,20 +74,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-      
+
       if (profileData) {
         setProfile(profileData as Profile);
       }
 
       // Fetch role
       const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
+        .from('user_dynamic_roles')
+        .select(`
+          role:dynamic_roles (
+            name
+          )
+        `)
         .eq('user_id', userId)
         .maybeSingle();
-      
-      if (roleData) {
-        setRole(roleData.role as AppRole);
+
+      if (roleData?.role) {
+        // @ts-ignore
+        setRole(roleData.role.name as AppRole);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);

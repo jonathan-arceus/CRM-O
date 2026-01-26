@@ -58,6 +58,7 @@ plugins:
   - name: cors
     config:
       origins:
+        - 'https://crm.owlsolutions.io'
         - 'http://159.65.137.58'
         - 'http://localhost:3000'
         - 'http://localhost:8000'
